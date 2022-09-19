@@ -57,6 +57,7 @@ def split_and_export_track(episode_title, audio, transcript, output_path='output
 def preprocess_rss(uri, cachedir=CACHEDIR):
 	from xml.dom import minidom
 	from urllib import request
+	import os
 	# fetch feed first and remove all but vtt transcripts
 	rss = cache_fetch(uri, fname='rss.xml', cachedir='cache')
 	xmldoc = minidom.parse(rss)
