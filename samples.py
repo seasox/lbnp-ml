@@ -124,7 +124,14 @@ def parse_rss(uri, num_episodes=None, episodes_dir='cache/episodes'):
 		}]
 	return entries
 
+
+def install_requirements():
+	import subprocess
+	import sys
+	subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+
 def main():
+	install_requirements()
 	output = 'output'
 	num_episodes = 3
 	metadata_only = False
