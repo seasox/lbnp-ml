@@ -4,6 +4,8 @@ CACHEDIR = 'cache'
 
 def clean_dir(folder):
 	import os, shutil
+	if not os.path.exists(folder):
+		return
 	for filename in os.listdir(folder):
 		file_path = os.path.join(folder, filename)
 		try:
@@ -14,7 +16,8 @@ def clean_dir(folder):
 		except Exception as e:
 			print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def split_and_export_track(episode_title, audio, transcript, output_path='output', metadata_only=False):
+def split_and_export_track(episode_title, audio, transcript, output_path='output', metadata_only=False, fmeta_lock=None):
+	print('processing episode ' + episode_title)
 	import os
 	import webvtt
 	import re
@@ -33,8 +36,15 @@ def split_and_export_track(episode_title, audio, transcript, output_path='output
 		else:
 			speaker_parts[speaker] += [caption]
 	if not metadata_only:
+		print('loading and resampling ' + audio)
 		sound = AudioSegment.from_file(audio)
+		sound = sound.set_channels(1)\
+		             .high_pass_filter(100)\
+		             .low_pass_filter(7000)\
+		             .set_frame_rate(22050)
+		print('done')
 	for speaker in speaker_parts:
+		print('processing speaker ' + speaker)
 		speaker_output_path = os.path.join(output_path, speaker)
 		os.makedirs(speaker_output_path, exist_ok=True)
 		metadata = ''
@@ -48,9 +58,12 @@ def split_and_export_track(episode_title, audio, transcript, output_path='output
 				os.makedirs(wavs_path, exist_ok=True)
 				clip.export(clip_path, format = 'wav')
 			metadata += clip_fname[:-4] + '|' + part.text + '|' + part.text + '\n'
+		fmeta_lock.acquire() if fmeta_lock is not None else None
 		fmeta = open(os.path.join(speaker_output_path, 'metadata.csv'), 'a+')
 		fmeta.write(metadata)
 		fmeta.close()
+		fmeta_lock.release() if fmeta_lock is not None else None
+		print('done')
 	if ignored_speakers:
 		print(episode_title + ': ignored speakers ' + str(ignored_speakers))
 
@@ -113,20 +126,23 @@ def parse_rss(uri, num_episodes=None, episodes_dir='cache/episodes'):
 
 def main():
 	output = 'output'
-	num_episodes = 1
+	num_episodes = 3
 	metadata_only = False
 	if not metadata_only:
 		clean_dir(output)
 	episodes = parse_rss('https://feeds.metaebene.me/lnp/m4a', num_episodes=num_episodes)
+	threads = []
 	for episode in episodes:
-		print('processing episode ' + episode['title'])
-		split_and_export_track(episode['title'], episode['audio'], episode['transcript'], output_path=output, metadata_only=metadata_only)
-	if not metadata_only:
-		import os
-		from wav_transform import wav_transform
-		for speaker in FILTERED_SPEAKERS:
-			wav_transform(os.path.join(output, speaker), cachedir=CACHEDIR)
-
+		import threading
+		fmeta_lock = threading.Lock()
+		print('spawning thread')
+		thread = threading.Thread(
+				name=episode['title'],
+				target=split_and_export_track,
+				args=(episode['title'], episode['audio'], episode['transcript']),
+				kwargs={"output_path": output, "metadata_only": metadata_only, "fmeta_lock": fmeta_lock})
+		thread.start()
+		print('spawned')
 
 if __name__ == '__main__':
 	main()
