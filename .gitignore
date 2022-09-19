@@ -3,3 +3,5 @@ output
 episodes
 rss.xml
 .DS_Store
+__pycache__
+cache
