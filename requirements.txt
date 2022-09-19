@@ -1,0 +1,12 @@
+cffi==1.15.1
+docopt==0.6.2
+feedparser==6.0.10
+future==0.18.2
+numpy==1.23.3
+pycparser==2.21
+pydub==0.25.1
+pyloudnorm==0.1.0
+scipy==1.9.1
+sgmllib3k==1.0.0
+SoundFile==0.10.3.post1
+webvtt-py==0.4.6
