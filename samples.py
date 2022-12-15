@@ -132,6 +132,10 @@ def install_requirements():
 
 def main():
 	install_requirements()
+	import logging
+	l = logging.getLogger("pydub.converter")
+	l.setLevel(logging.DEBUG)
+	l.addHandler(logging.StreamHandler())
 	output = 'output'
 	num_episodes = 3
 	metadata_only = False
